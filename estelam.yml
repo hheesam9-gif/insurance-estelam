@@ -1,0 +1,46 @@
+name: استعلام بیمه شخص ثالث
+
+on:
+  workflow_dispatch:
+    inputs:
+      region:
+        description: "سریال (۲ رقم)"
+        required: true
+        type: string
+      three_digit:
+        description: "۳ رقم پلاک"
+        required: true
+        type: string
+      letter:
+        description: "حرف پلاک"
+        required: true
+        type: string
+      left_two_digit:
+        description: "عدد سمت چپ (ایران)"
+        required: true
+        type: string
+
+jobs:
+  estelam:
+    runs-on: ubuntu-latest
+    steps:
+      - name: دریافت کد
+        uses: actions/checkout@v4
+
+      - name: نصب پایتون
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: نصب کتابخانه‌ها
+        run: |
+          pip install playwright jdatetime
+          python -m playwright install --with-deps chromium
+
+      - name: اجرای استعلام
+        run: |
+          python scripts/estelam.py \
+            --region "${{ github.event.inputs.region }}" \
+            --three-digit "${{ github.event.inputs.three_digit }}" \
+            --letter "${{ github.event.inputs.letter }}" \
+            --left-two-digit "${{ github.event.inputs.left_two_digit }}"
