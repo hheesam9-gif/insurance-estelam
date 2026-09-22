@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>استعلام تخفیف بیمه شخص ثالث</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: Tahoma, Arial, sans-serif;
+    background: #0f172a;
+    color: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+  }
+  .box {
+    background: #1e293b;
+    padding: 32px;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  h1 { font-size: 19px; margin-bottom: 20px; text-align: center; }
+  label { display: block; margin-bottom: 6px; font-size: 13px; color: #94a3b8; }
+  .plate-row { display: flex; gap: 8px; margin-bottom: 18px; }
+  .plate-row .field { flex: 1; }
+  input, select {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #334155;
+    background: #0f172a;
+    color: #f1f5f9;
+    font-size: 15px;
+  }
+  button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background: #22c55e;
+    color: #052e16;
+    font-weight: bold;
+    font-size: 15px;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+  #msg { margin-top: 14px; text-align: center; font-size: 14px; min-height: 18px; }
+  .error { color: #f87171; }
+  .result {
+    margin-top: 20px;
+    background: #0f172a;
+    border-radius: 10px;
+    padding: 16px;
+    font-size: 14px;
+    line-height: 2;
+  }
+  .result .row { display: flex; justify-content: space-between; }
+  .result .label { color: #94a3b8; }
+  .result .value { font-weight: bold; color: #4ade80; }
+  .warnings {
+    margin-top: 12px;
+    font-size: 12px;
+    color: #fbbf24;
+    line-height: 1.8;
+  }
+</style>
+</head>
+<body>
+  <div class="box">
+    <h1>استعلام تخفیف بیمه شخص ثالث</h1>
+
+    <label>پلاک</label>
+    <div class="plate-row">
+      <div class="field">
+        <input id="region" placeholder="سریال (۲ رقم)" maxlength="2" />
+      </div>
+      <div class="field">
+        <input id="threeDigit" placeholder="۳ رقم" maxlength="3" />
+      </div>
+      <div class="field">
+        <input id="letter" placeholder="حرف" maxlength="1" />
+      </div>
+      <div class="field">
+        <input id="leftTwoDigit" placeholder="ایران" maxlength="2" />
+      </div>
+    </div>
+
+    <button id="submitBtn">استعلام</button>
+    <div id="msg"></div>
+    <div id="resultBox"></div>
+  </div>
+
+<script>
+  // بعد از دیپلوی بک‌اند روی Render، این آدرس رو با آدرس واقعی سرورتون عوض کنید
+  const API_URL = "https://YOUR-BACKEND-URL.onrender.com/api/estelam";
+
+  const submitBtn = document.getElementById("submitBtn");
+  const msg = document.getElementById("msg");
+  const resultBox = document.getElementById("resultBox");
+
+  submitBtn.addEventListener("click", async () => {
+    const region = document.getElementById("region").value.trim();
+    const three_digit = document.getElementById("threeDigit").value.trim();
+    const letter = document.getElementById("letter").value.trim();
+    const left_two_digit = document.getElementById("leftTwoDigit").value.trim();
+
+    if (!region || !three_digit || !letter || !left_two_digit) {
+      msg.textContent = "لطفاً همه فیلدهای پلاک رو پر کنید";
+      msg.className = "error";
+      return;
+    }
+
+    submitBtn.disabled = true;
+    msg.textContent = "در حال استعلام... (ممکنه ۱۰ تا ۲۰ ثانیه طول بکشه)";
+    msg.className = "";
+    resultBox.innerHTML = "";
+
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ region, three_digit, letter, left_two_digit })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        msg.textContent = data.error || "خطایی رخ داد";
+        msg.className = "error";
+        submitBtn.disabled = false;
+        return;
+      }
+
+      msg.textContent = "";
+      let html = `
+        <div class="result">
+          <div class="row"><span class="label">تخفیف مالی:</span><span class="value">${data.financial}%</span></div>
+          <div class="row"><span class="label">تخفیف جانی:</span><span class="value">${data.bodily}%</span></div>
+          <div class="row"><span class="label">تخفیف سرنشین:</span><span class="value">${data.passenger}%</span></div>
+        </div>
+      `;
+      if (data.warnings && data.warnings.length) {
+        html += '<div class="warnings">' + data.warnings.map(w => "⚠ " + w).join("<br>") + "</div>";
+      }
+      resultBox.innerHTML = html;
+    } catch (e) {
+      msg.textContent = "ارتباط با سرور برقرار نشد";
+      msg.className = "error";
+    }
+
+    submitBtn.disabled = false;
+  });
+</script>
+</body>
+</html>
