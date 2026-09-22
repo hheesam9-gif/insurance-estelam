@@ -1,0 +1,5 @@
+flask==3.0.3
+flask-cors==4.0.1
+jdatetime==4.1.1
+playwright==1.47.0
+gunicorn==22.0.0
